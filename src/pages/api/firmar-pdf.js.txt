@@ -1,6 +1,4 @@
 // Ruta API en Next.js para insertar firma en PDF
-// Requiere: pdf-lib y node-fetch
-
 import { PDFDocument, rgb } from 'pdf-lib';
 import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
@@ -33,7 +31,6 @@ export default async function handler(req, res) {
       height: 60,
     });
 
-    // Insertar texto "Recibí conforme"
     lastPage.drawText('Recibí conforme', {
       x: width - 180,
       y: 115,
@@ -41,28 +38,25 @@ export default async function handler(req, res) {
       color: rgb(0, 0, 0),
     });
 
-    // Generar nuevo PDF
+    // Generar PDF final
     const pdfFinal = await pdfDoc.save();
+    const buffer = Buffer.from(pdfFinal);
 
-    // Subir a Supabase Storage
-    const archivoFirmado = new Blob([pdfFinal], { type: 'application/pdf' });
     const nombreArchivo = `firmadas/nomina_${nominaId}.pdf`;
 
     const { error: uploadError } = await supabase.storage
       .from('archivos')
-      .upload(nombreArchivo, archivoFirmado, {
+      .upload(nombreArchivo, buffer, {
         upsert: true,
         contentType: 'application/pdf',
       });
 
     if (uploadError) throw uploadError;
 
-    // Obtener URL pública del nuevo archivo
     const { data: { publicUrl } } = supabase.storage
       .from('archivos')
       .getPublicUrl(nombreArchivo);
 
-    // Actualizar estado en la tabla 'nominas'
     await supabase.from('nominas').update({
       estado: 'firmada',
       fecha_firma: new Date().toISOString(),
@@ -71,7 +65,7 @@ export default async function handler(req, res) {
 
     res.status(200).json({ message: 'PDF firmado y subido', url: publicUrl });
   } catch (err) {
-    console.error(err);
+    console.error('ERROR EN LA FIRMA', err);
     res.status(500).json({ error: 'Error al firmar PDF' });
   }
 }
