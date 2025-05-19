@@ -66,6 +66,6 @@ export default async function handler(req, res) {
     res.status(200).json({ message: 'PDF firmado y subido', url: publicUrl });
   } catch (err) {
     console.error('ERROR EN LA FIRMA', err);
-    res.status(500).json({ error: err.message || 'Error al firmar PDF' });
+    res.status(500).json({ error: JSON.stringify(err) || 'Error al firmar PDF' });
   }
 }
