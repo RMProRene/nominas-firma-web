@@ -9,12 +9,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default function Home() {
   const [user, setUser] = useState({ email: "juan@ejemplo.com" }); // simular login
   const [nominaUrl, setNominaUrl] = useState(null);
+  const [nominaId, setNominaId] = useState(null);
   const [motivo, setMotivo] = useState("");
   const sigCanvas = useRef({});
 
   useEffect(() => {
     const fetchNomina = async () => {
-      // Buscar el empleado por email
       const { data: empleados, error: empError } = await supabase
         .from("empleados")
         .select("id")
@@ -28,10 +28,9 @@ export default function Home() {
 
       const empleadoId = empleados.id;
 
-      // Buscar la nómina asignada
       const { data: nominas, error: nomError } = await supabase
         .from("nominas")
-        .select("archivo_url")
+        .select("id, archivo_url")
         .eq("empleado_id", empleadoId)
         .eq("estado", "pendiente")
         .order("fecha_subida", { ascending: false })
@@ -40,6 +39,7 @@ export default function Home() {
 
       if (nominas) {
         setNominaUrl(nominas.archivo_url);
+        setNominaId(nominas.id);
       } else {
         console.warn("No hay nóminas pendientes");
       }
@@ -49,40 +49,40 @@ export default function Home() {
   }, [user]);
 
   const handleFirmar = async () => {
-  const firmaBase64 = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
+    const firmaBase64 = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
 
-  if (!nominaUrl) {
-    alert("No hay nómina cargada.");
-    return;
-  }
-
-  try {
-    const response = await fetch("/api/firmar-pdf", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        pdfUrl: nominaUrl,
-        firmaBase64: firmaBase64,
-        empleadoId: "54f01dc2-2bcf-4afb-8e32-2f218fd289fc",
-        nominaId: "07cf0010-0a7a-4304-ab4d-9ae858e95ad2"
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      alert("✅ Nómina firmada correctamente");
-      window.location.reload();
-    } else {
-      alert("❌ Error al firmar: " + data.error);
+    if (!nominaUrl || !nominaId) {
+      alert("No hay nómina cargada.");
+      return;
     }
-  } catch (err) {
-    console.error("ERROR AL ENVIAR A LA API", err);
-    alert("❌ Error inesperado");
-  }
-};
+
+    try {
+      const response = await fetch("/api/firmar-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pdfUrl: nominaUrl,
+          firmaBase64: firmaBase64,
+          empleadoId: "juan@ejemplo.com",
+          nominaId: nominaId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("✅ Nómina firmada correctamente");
+        window.location.reload();
+      } else {
+        alert("❌ Error al firmar: " + data.error);
+      }
+    } catch (err) {
+      console.error("ERROR AL ENVIAR A LA API", err);
+      alert("❌ Error inesperado");
+    }
+  };
 
   const handleRechazar = () => {
     alert("Motivo de rechazo: " + motivo);
@@ -113,3 +113,4 @@ export default function Home() {
     </div>
   );
 }
+
