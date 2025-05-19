@@ -1,6 +1,5 @@
 // Ruta API en Next.js para insertar firma en PDF
 import { PDFDocument, rgb } from 'pdf-lib';
-import fetch from 'node-fetch';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -14,11 +13,13 @@ export default async function handler(req, res) {
   const { pdfUrl, firmaBase64, empleadoId, nominaId } = req.body;
 
   try {
-    // Descargar PDF original
-    const pdfBytes = await fetch(pdfUrl).then((r) => r.arrayBuffer());
+    // Descargar PDF original con fetch nativo
+    const pdfResponse = await fetch(pdfUrl);
+    if (!pdfResponse.ok) throw new Error("No se pudo descargar el PDF original");
+    const pdfBytes = await pdfResponse.arrayBuffer();
+
     const pdfDoc = await PDFDocument.load(pdfBytes);
 
-    // Insertar imagen de firma
     const firmaImage = await pdfDoc.embedPng(firmaBase64);
     const pages = pdfDoc.getPages();
     const lastPage = pages[pages.length - 1];
@@ -38,7 +39,6 @@ export default async function handler(req, res) {
       color: rgb(0, 0, 0),
     });
 
-    // Generar PDF final
     const pdfFinal = await pdfDoc.save();
     const buffer = Buffer.from(pdfFinal);
 
@@ -66,6 +66,6 @@ export default async function handler(req, res) {
     res.status(200).json({ message: 'PDF firmado y subido', url: publicUrl });
   } catch (err) {
     console.error('ERROR EN LA FIRMA', err);
-    res.status(500).json({ error: 'Error al firmar PDF' });
+    res.status(500).json({ error: err.message || 'Error al firmar PDF' });
   }
 }
