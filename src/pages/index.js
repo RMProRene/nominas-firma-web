@@ -7,37 +7,66 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function Home() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState({ email: "juan@ejemplo.com" }); // simular login
   const [nominaUrl, setNominaUrl] = useState(null);
   const [motivo, setMotivo] = useState("");
   const sigCanvas = useRef({});
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      // Simulación: aquí debes buscar la nómina correspondiente al usuario
-      setNominaUrl("/ejemplo_nomina.pdf");
-    });
-  }, []);
+    const fetchNomina = async () => {
+      // Buscar el empleado por email
+      const { data: empleados, error: empError } = await supabase
+        .from("empleados")
+        .select("id")
+        .eq("email", user.email)
+        .single();
+
+      if (empError || !empleados) {
+        console.error("Empleado no encontrado");
+        return;
+      }
+
+      const empleadoId = empleados.id;
+
+      // Buscar la nómina asignada
+      const { data: nominas, error: nomError } = await supabase
+        .from("nominas")
+        .select("archivo_url")
+        .eq("empleado_id", empleadoId)
+        .eq("estado", "pendiente")
+        .order("fecha_subida", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (nominas) {
+        setNominaUrl(nominas.archivo_url);
+      } else {
+        console.warn("No hay nóminas pendientes");
+      }
+    };
+
+    fetchNomina();
+  }, [user]);
 
   const handleFirmar = async () => {
     const firmaData = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
-    alert("Firma capturada. Aquí la subirías a Supabase Storage y guardarías en la tabla 'firmas'.");
+    alert("Firma capturada. Aquí se subiría a Supabase y se actualizaría la tabla.");
   };
 
   const handleRechazar = () => {
     alert("Motivo de rechazo: " + motivo);
-    // Aquí enviarías ese motivo a la base de datos en la tabla 'nominas'
   };
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Bienvenido</h1>
-      {nominaUrl && (
+      <h1>Bienvenido, {user.email}</h1>
+      {nominaUrl ? (
         <>
           <h2>Tu nómina:</h2>
-          <iframe src={nominaUrl} width="100%" height="500px" />
+          <iframe src={nominaUrl} width="100%" height="500px" title="Nómina" />
         </>
+      ) : (
+        <p>No tienes nóminas pendientes.</p>
       )}
       <h3>Firma aquí:</h3>
       <SignatureCanvas
