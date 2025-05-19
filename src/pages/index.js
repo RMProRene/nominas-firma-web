@@ -80,7 +80,8 @@ export default function Home() {
       }
     } catch (err) {
       console.error("ERROR AL ENVIAR A LA API", err);
-      alert("❌ Error inesperado");
+      console.error("ERROR COMPLETO:", err);
+alert("❌ Error inesperado: " + (err?.message || JSON.stringify(err)));
     }
   };
 
