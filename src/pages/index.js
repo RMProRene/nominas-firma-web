@@ -66,23 +66,23 @@ export default function Home() {
         pdfUrl: nominaUrl,
         firmaBase64: firmaBase64,
         empleadoId: "54f01dc2-2bcf-4afb-8e32-2f218fd289fc",
-        nominaId: "07cf0010-0a7a-4304-ab4d-9ae858e95ad2",
+        nominaId: "07cf0010-0a7a-4304-ab4d-9ae858e95ad2"
       }),
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      alert("✅ PDF firmado correctamente");
-      window.location.reload(); // refresca la página
+      alert("✅ Nómina firmada correctamente");
+      window.location.reload();
     } else {
       alert("❌ Error al firmar: " + data.error);
     }
   } catch (err) {
-    console.error(err);
+    console.error("ERROR AL ENVIAR A LA API", err);
     alert("❌ Error inesperado");
   }
-  };
+};
 
   const handleRechazar = () => {
     alert("Motivo de rechazo: " + motivo);
